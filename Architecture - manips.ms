@@ -96,19 +96,19 @@ archi.faces.Verticales ()
 	archi.faces.diviserVerticalement	5
 
 	archi.faces.souder ()
-
+	
 	archi.faces.normal ((archi.faces.selection() as array )[1]) marquer:true
 	archi.faces.origine ((archi.faces.selection() as array )[1]) marquer:true
 	archi.faces.centre ((archi.faces.selection() as array )[1]) marquer:true 	vMax:false
 
 	archi.points.selectionner #(252,253)
 
-polyop.setSlicePlane $  ( Ray (archi.faces.centre 3 ) [-1,0,0] )  100
-polyop.slice $  			(archi.faces.selection())			( Ray (archi.faces.centre 3 ) [-1,0,0] )
+	polyop.setSlicePlane $  ( Ray (archi.faces.centre 3 ) [-1,0,0] )  100
+	polyop.slice $  			(archi.faces.selection())			( Ray (archi.faces.centre 3 ) [-1,0,0] )
 
 
-archi.model.preparer ()
-archi.materiau.nouveau ()
+	archi.model.preparer ()
+	archi.materiau.nouveau ()
 	
 	
 	

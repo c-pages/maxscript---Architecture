@@ -30,14 +30,44 @@ struct tableau_struct (
 	
 ) -- fin struct tableau --
 
+---- Matrices ----
+struct matrice_struct (
+	
+	mtrx_rot90_x = (eulerAngles 90 0 0) as matrix3,
+	mtrx_rot90_y = (eulerAngles 0 90 0) as matrix3,
+	mtrx_rot90_z = (eulerAngles 0 0 90) as matrix3,
+	
+	-- 	Rotation de la normal  --
+	fn rotate90_X 	normalFace  = (
+		local result	=  mtrx_rot90_x * ( matrixFromNormal normalFace )
+		result
+	),
+	-- 	Rotation de la normal  --
+	fn rotate90_Y 	normalFace  = (
+		local result	=  mtrx_rot90_y * ( matrixFromNormal normalFace )
+		result
+	),
+	-- 	Rotation de la normal  --
+	fn rotate90_Z 	normalFace  = (
+		local result	=  mtrx_rot90_z * ( matrixFromNormal normalFace )
+		result
+	)
+	
+	
+) -- fin struct tableau --
+
 
 ---- Outils ----
 struct outils_struct (
 	---- MEMBRES ----
 	tableau,
+	matrice,
 	
 	---- EVENEMENTS ----
-	on create do tableau = tableau_struct ()
+	on create do (
+		tableau 	= tableau_struct ()
+		matrice 	= matrice_struct ()
+	)
 	
 ) -- fin struct outils --
 
@@ -166,6 +196,7 @@ struct prefs_struct (
 struct modele_struct (
 	---- membres ----
 	ptr_materiau,		---- Pointeur vers archi.materiau --
+	ptr_faces,			---- Pointeur vers archi.materiau --
 	
 	---- fonctions ----
 	fn ajouterAttribut 	noeud:$	= (
@@ -193,8 +224,12 @@ struct modele_struct (
 		---- Appliquer un nouveau materiaux Batiment ---
 		ptr_materiau.nouveau ()
 		
-		---- deselectionner les faces ----
-		polyop.setFaceSelection noeud #{}
+		---- Selectionner les faces ----
+		local faceZenithales = #()
+		for face = 1 to polyop.getNumFaces noeud do
+			if ptr_faces.sontZenithal faces:#(face) do append faceZenithales face
+		polyop.setFaceSelection noeud 	faceZenithales
+		
 		max modify  mode
 		subobjectLevel = 4
 		
@@ -218,6 +253,7 @@ struct faces_struct (
 	---- membres ----
 	ptr_arretes,	---- Pointeur vers archi.arretes --
 	ptr_points,		---- Pointeur vers archi.points --
+	ptr_matrice,		---- Pointeur vers archi.outils.normal --
 	
 	---- fonctions ----
 	---------- CALCULS ----------
@@ -258,7 +294,6 @@ struct faces_struct (
 								appendIfUnique resultTmp 		ID_pt_1
 							)
 						)
-					
 				)
 				if resultTmp.count == 2 do 	(
 					appendIfUnique  pointsAlignesVerticalement  resultTmp[1]
@@ -343,6 +378,17 @@ struct faces_struct (
 		
 		pointLePlusBas	
 	),	
+	---- 	Renvois la normal de la face.  ----
+	fn normal 	face 	noeud:$   marquer:false  = (
+		local result = polyop.getFaceNormal noeud face
+		if marquer do (
+			ptMarque = point name:(uniquename "pt Normal" ) \
+									axistripod:on cross:off Box:off centermarker:off
+			ptMarque.transform 	= matrixfromnormal  result
+			ptMarque.pos 			= centre		face
+		)
+		result
+	),
 	---- 	Renvois la hauteur de la face. (cm.) ----
 	fn hauteur 	face 	noeud:$   = (
 		local listePoints = polyop.getFaceVerts  	noeud	face
@@ -370,31 +416,35 @@ struct faces_struct (
 		)
 		result	
 	),
-	---- 	Renvois la normal de la face.  ----
-	fn normal 	face 	noeud:$   marquer:false  = (
-		local result = polyop.getFaceNormal noeud face
-		if marquer do (
-			ptMarque = point name:(uniquename "pt Normal" ) \
-									axistripod:on cross:off Box:off centermarker:off
-			ptMarque.transform 	= matrixfromnormal  result
-			ptMarque.pos 			= centre		face
-		)
-		result
-	),
 	---- 	Renvois l'origine de la face. ----
 	fn origine 	face 	noeud:$   marquer:false = (
 		
 		local centreFace 		= centre	face	noeud:noeud 	vMax:false
 		local largeurFace			= largeur	face	noeud:noeud
+		local hauteurFace		= hauteur	face	noeud:noeud
 		local normalFace 		= normal	face	noeud:noeud
 		local normalFaceRotZ	= normalFace * rotateZMatrix 90 
-		local result					= centreFace + normalFaceRotZ * ( -largeurFace/2 ) 
+		
+		local normalTestX		= ptr_matrice.rotate90_X 		normalFace
+		local normalTestY		= ptr_matrice.rotate90_Y 		normalFace
+		local normalTestZ		= ptr_matrice.rotate90_Z 		normalFace
+		
+		local result					= centreFace + normalFaceRotZ * ( -largeurFace/2 )	--		-hauteurFace/2  ]
 		
 		if marquer do (
-			pt = point 	name:( uniquename "pt Origine" ) 		\
-							axistripod:off cross:on Box:off centermarker:off
-			pt.transform = matrixfromnormal  ( normal 	face )
-			pt.pos = result
+			ptNormal = point 	name:( uniquename "pt Normal" ) 									\
+									axistripod:on cross:on Box:off centermarker:off size:100 	\
+									wirecolor:(color 200	200	50)
+			ptNormal.transform = matrixfromnormal  ( normalFace )
+			ptNormal.pos = centreFace
+			
+			ptOrigine1 = point 	name:( uniquename "normalTestX" ) 								\
+										axistripod:on cross:on Box:off centermarker:off size:100 	\
+										wirecolor:(color 50	50	 200)
+			
+			ptOrigine1.transform =  normalTestX
+			ptOrigine1.pos = (centreFace + ( [largeurFace/2, hauteurFace/2 ,0]  ) ) * matrixFromNormal normalFace
+			
 		)
 		
 		result
@@ -1107,9 +1157,13 @@ struct architecture_struct (
 		creer 		= creer_struct ()
 		
 		---- Pointeurs des structs secondaires ----
-		modele.ptr_materiau 	= materiau		
+		modele.ptr_materiau 	= materiau	
+		modele.ptr_faces 		= faces
+		
 		faces.ptr_arretes			= arretes
 		faces.ptr_points			= points
+		faces.ptr_matrice			= outils.matrice
+		
 		creer.ptr_faces 			= faces
 		creer.ptr_prefs			= prefs
 		creer.ptr_materiau		= materiau

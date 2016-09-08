@@ -10,6 +10,7 @@ rollout fenetreArchitecture "Architecture" width:814  height:60 	-- height:350
 	local ui_toiture 			= #()		---- la groupe de boutons de l'interface
 	local ui_menuiseries 	= #()		---- la groupe de boutons de l'interface
 	local ui_plateformes 	= #()		---- la groupe de boutons de l'interface
+	
 	local prt									---- pointeur vers le struct principal
 	
 	
@@ -54,7 +55,7 @@ rollout fenetreArchitecture "Architecture" width:814  height:60 	-- height:350
 	---- Fonctions --------------------------------------------
 	fn actualiserUI = (
 		
-		local enable_groupes 			= false	
+		local enable_groupes 	= false	
 		
 		if prt.modele.estPret() then (
 			
@@ -64,18 +65,21 @@ rollout fenetreArchitecture "Architecture" width:814  height:60 	-- height:350
 			
 			if subobjectLevel == 4 then (
 				if ( prt.faces.selection() as array ).count > 0 then (	
-					if prt.faces.sontVertical () do (
+					if prt.faces.sontVertical () then (
 						for btn in ui do 
 							if findItem ui_verti btn == 0 	
 								then  	btn.enabled = false
 								else  	btn.enabled = true
-					)
-					if prt.faces.sontZenithal () do (
+					) else if prt.faces.sontZenithal () then (
 						for btn in ui do 
 							if findItem ui_horiz btn == 0 
 								then  	btn.enabled = false
 								else  	btn.enabled = true
+					) else (
+						for btn in ui do
+							btn.enabled = false
 					)
+					btn_souder.enabled = ( prt.faces.selection() as array ).count > 1
 				) else (
 					for btn in ui do btn.enabled = false
 				)
@@ -237,9 +241,9 @@ rollout fenetreArchitecture "Architecture" width:814  height:60 	-- height:350
 	on btn_div2Sens changed state do actualiserUI ()
 	on btn_div3Sens changed state do actualiserUI ()
 	on btn_extruder pressed do
-		()
+		$.PopupDialog #Extrude
 	on btn_incruster pressed do
-		()
+		$.PopupDialog #Inset
 	on btn_souder pressed do
 		()
 	on btn_etage pressed do
